@@ -1,22 +1,42 @@
-require "bundler/setup"
-require 'sinatra'
-require 'json'
-require 'openssl'
-require 'base64'
+require 'bundler/inline'
+
+gemfile do
+  source 'https://rubygems.org'
+  # This app
+  gem 'sinatra'
+  # OAuth2 middleware
+  gem 'rack-oauth2'
+  # OAuth middleware
+  gem 'omniauth'
+  gem 'omniauth-quickbooks'
+  # Secrets!
+  gem 'dotenv'
+
+  # The gem!
+  gem 'qbo_api', path: '.'
+end
+
 require 'omniauth'
 require 'omniauth-quickbooks'
 require 'dotenv'
 require 'rack/oauth2'
 require 'qbo_api'
 
+require 'json'
+# Webhook support
+require 'openssl'
+require 'base64'
+
 Dotenv.load "#{__dir__}/../.env"
 
 PORT  = ENV.fetch("PORT", 9393)
+VERIFIER_TOKEN = ENV['QBO_API_VERIFIER_TOKEN']
+# OAuth1 credentials
 CONSUMER_KEY = ENV['QBO_API_CONSUMER_KEY']
 CONSUMER_SECRET = ENV['QBO_API_CONSUMER_SECRET']
+# OAuth2 credentials
 CLIENT_ID = ENV['QBO_API_CLIENT_ID']
 CLIENT_SECRET = ENV['QBO_API_CLIENT_SECRET']
-VERIFIER_TOKEN = ENV['QBO_API_VERIFIER_TOKEN']
 
 set :port, PORT
 use Rack::Session::Cookie, secret: '34233adasf/qewrq453agqr9(lasfa)'
@@ -32,7 +52,7 @@ helpers do
   end
 
   def oauth2_client
-    client = Rack::OAuth2::Client.new(
+    Rack::OAuth2::Client.new(
       identifier: CLIENT_ID,
       secret: CLIENT_SECRET,
       redirect_uri: "http://localhost:#{PORT}/oauth2-redirect",
