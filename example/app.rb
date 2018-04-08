@@ -115,10 +115,32 @@ class App < Sinatra::Base
     erb :index
   end
 
+        # grantUrl: "<%= @client.authorization_uri(scope: 'com.intuit.quickbooks.accounting', state: session[:state]) %>",
+        # datasources: {
+        #   quickbooks : true,
+        #   payments : true
   get '/oauth2' do
     session[:state] = SecureRandom.uuid
-    @client = oauth2_client
-    erb :oauth2
+    client = oauth2_client
+		url = 'https://appcenter.intuit.com'
+		authorization_endpoint = '/connect/oauth2'
+		api = QboApi.new(realm_id: ENV.fetch("QBO_API_COMPANY_ID"))
+    connection = api.build_connection(url) do |conn|
+      api.send(:add_exception_middleware, conn)
+      api.send(:add_connection_adapter, conn)
+    end
+    raw_request = connection.get do |req|
+      params = {
+        client_id: CLIENT_ID,
+        scope: "com.intuit.quickbooks.accounting",
+        response_type: "code",
+        state: session[:state],
+        redirect_uri: REDIRECT_URI
+      }
+      req.url authorization_endpoint, params
+    end
+
+    redirect raw_request.env[:url]
   end
 
   get '/oauth2-redirect' do
